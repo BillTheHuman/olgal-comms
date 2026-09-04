@@ -1,0 +1,44 @@
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "olgal-comms"
+version = "0.1.0"
+description = "Private, self-only communications broker for AI applications on OlGal"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "AGPL-3.0-or-later" }
+authors = [{ name = "BillTheHuman" }]
+dependencies = [
+  "fastapi>=0.115,<1",
+  "mcp>=1.0,<2",
+  "uvicorn[standard]>=0.30,<1",
+]
+
+[project.optional-dependencies]
+dev = ["httpx>=0.27,<1", "pytest>=8,<9", "ruff>=0.8,<1"]
+
+[project.scripts]
+olgal-comms = "olgal_comms.api:main"
+olgal-comms-mcp = "olgal_comms.mcp_server:main"
+olgal-comms-token = "olgal_comms.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/olgal_comms"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "S"]
+ignore = ["S101"]
+
+[tool.ruff.lint.per-file-ignores]
+"src/olgal_comms/api.py" = ["B008"]
+"tests/*" = ["S105"]

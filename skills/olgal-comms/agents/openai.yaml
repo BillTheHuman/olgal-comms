@@ -1,0 +1,12 @@
+interface:
+  display_name: "OlGal Comms"
+  short_description: "Private self-only AI calls and messages"
+  default_prompt: "Use $olgal-comms to contact me through my private OlGal communication service."
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "olgal-comms"
+      description: "Self-only messaging and call controls on OlGal"
+      transport: "stdio"
+policy:
+  allow_implicit_invocation: true

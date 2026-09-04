@@ -1,0 +1,40 @@
+{
+  "name": "olgal-comms",
+  "version": "0.1.0+codex.20260904161312",
+  "description": "Contact the owner through a private, self-only OlGal communication service.",
+  "author": {
+    "name": "BillTheHuman",
+    "url": "https://github.com/BillTheHuman"
+  },
+  "homepage": "https://github.com/BillTheHuman/olgal-comms",
+  "repository": "https://github.com/BillTheHuman/olgal-comms",
+  "license": "AGPL-3.0-or-later",
+  "keywords": [
+    "communications",
+    "mcp",
+    "privacy",
+    "voice"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "OlGal Comms",
+    "shortDescription": "Private self-only AI calls and messages.",
+    "longDescription": "Send policy-controlled messages and request private calls to the configured owner without exposing arbitrary recipients.",
+    "developerName": "BillTheHuman",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/BillTheHuman/olgal-comms",
+    "privacyPolicyURL": "https://github.com/BillTheHuman/olgal-comms/blob/main/SECURITY.md",
+    "termsOfServiceURL": "https://github.com/BillTheHuman/olgal-comms/blob/main/COVENANT.md",
+    "defaultPrompt": [
+      "Check whether my private OlGal line is ready.",
+      "Send me a routine message through OlGal.",
+      "Request a private voice call with me."
+    ],
+    "brandColor": "#315C50"
+  },
+  "mcpServers": "./.mcp.json"
+}

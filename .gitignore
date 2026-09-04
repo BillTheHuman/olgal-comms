@@ -1,0 +1,13 @@
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+*.db
+*.db-shm
+*.db-wal
+.env
+secrets/
+dist/
+build/
+node_modules/

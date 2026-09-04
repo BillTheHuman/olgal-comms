@@ -1,0 +1,28 @@
+[Unit]
+Description=OlGal private AI communications broker
+After=network-online.target tailscaled.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=the0m
+Group=the0m
+WorkingDirectory=/run/media/the0m/Storage-1/toys/olgal-comms
+Environment=OLGAL_BIND_HOST=127.0.0.1
+Environment=OLGAL_BIND_PORT=8791
+Environment=OLGAL_WEB_ROOT=/run/media/the0m/Storage-1/toys/olgal-comms/web
+Environment=OLGAL_TOKENS_FILE=/home/the0m/.config/olgal-comms/tokens.json
+EnvironmentFile=-/home/the0m/.config/olgal-comms/environment
+ExecStart=/run/media/the0m/Storage-1/toys/olgal-comms/.venv/bin/olgal-comms
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/home/the0m/.local/state/olgal-comms
+RestrictSUIDSGID=true
+LockPersonality=true
+
+[Install]
+WantedBy=multi-user.target

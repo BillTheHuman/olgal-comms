@@ -1,0 +1,7 @@
+# Merge this route before the existing catch-all reverse_proxy inside :38080.
+handle_path /comms/* {
+	reverse_proxy 127.0.0.1:8791
+	header_down Permissions-Policy "microphone=(self), camera=()"
+	header_down X-Content-Type-Options "nosniff"
+	header_down Referrer-Policy "no-referrer"
+}

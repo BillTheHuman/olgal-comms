@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#101a18">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="OlGal Comms">
+  <title>OlGal Comms</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+  <main>
+    <header>
+      <p class="eyebrow">OLGAL · PRIVATE LINE</p>
+      <h1>Your quiet line home.</h1>
+      <p class="subtitle">One recipient. Explicit consent. Honest status.</p>
+    </header>
+
+    <section class="card" aria-labelledby="connect-heading">
+      <h2 id="connect-heading">Connect</h2>
+      <label>Capability token <input id="token" type="password" autocomplete="off" spellcheck="false"></label>
+      <div class="actions">
+        <button id="save">Save on this device</button>
+        <button id="refresh" class="secondary">Check line</button>
+      </div>
+      <p id="connection" class="status" role="status">Not connected</p>
+    </section>
+
+    <section class="card" aria-labelledby="call-heading">
+      <h2 id="call-heading">Call requests</h2>
+      <label>Session ID <input id="session" autocomplete="off" spellcheck="false"></label>
+      <div class="actions">
+        <button id="accept">Accept</button>
+        <button id="decline" class="danger">Decline</button>
+        <button id="hangup" class="secondary">End</button>
+      </div>
+      <p id="call-state" class="status" role="status">No active session</p>
+    </section>
+
+    <section class="card boundaries">
+      <h2>Trust boundaries</h2>
+      <ul id="adapters"><li>Connect to view actual transport readiness.</li></ul>
+    </section>
+  </main>
+  <script src="assets/app.js" defer></script>
+</body>
+</html>

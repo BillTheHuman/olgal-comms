@@ -1,0 +1,34 @@
+:root {
+  color-scheme: dark;
+  --ink: #f0eee7;
+  --muted: #aab9b3;
+  --green: #8fd5b5;
+  --deep: #101a18;
+  --card: rgba(30, 47, 43, .86);
+  --line: rgba(143, 213, 181, .2);
+  font-family: ui-rounded, "SF Pro Rounded", system-ui, sans-serif;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; min-height: 100vh; color: var(--ink); background:
+    radial-gradient(circle at 20% -10%, #315c50 0, transparent 40%),
+    linear-gradient(160deg, #101a18, #0a100f 70%);
+}
+main { width: min(720px, 100%); margin: auto; padding: max(2rem, env(safe-area-inset-top)) 1rem max(2rem, env(safe-area-inset-bottom)); }
+header { padding: 1.5rem .5rem 2rem; }
+.eyebrow { color: var(--green); font-size: .75rem; font-weight: 750; letter-spacing: .18em; }
+h1 { margin: .4rem 0; font-family: Georgia, serif; font-size: clamp(2.3rem, 10vw, 4.5rem); font-weight: 500; line-height: .98; }
+.subtitle, .status { color: var(--muted); }
+.card { margin: 1rem 0; padding: 1.2rem; border: 1px solid var(--line); border-radius: 1.3rem; background: var(--card); backdrop-filter: blur(16px); }
+h2 { margin-top: 0; font-size: 1.05rem; }
+label { display: grid; gap: .5rem; color: var(--muted); font-size: .86rem; }
+input { width: 100%; min-height: 3rem; padding: .7rem .85rem; border: 1px solid var(--line); border-radius: .8rem; background: #09110f; color: var(--ink); font: inherit; }
+.actions { display: flex; flex-wrap: wrap; gap: .65rem; margin-top: .9rem; }
+button { min-height: 2.8rem; padding: .65rem 1rem; border: 0; border-radius: 999px; background: var(--green); color: #0b1713; font: inherit; font-weight: 750; }
+button.secondary { background: #31453f; color: var(--ink); }
+button.danger { background: #e6a19b; color: #28100e; }
+button:focus-visible, input:focus-visible { outline: 3px solid #d8b76f; outline-offset: 2px; }
+.status { min-height: 1.3em; margin-bottom: 0; }
+.boundaries li { margin: .7rem 0; color: var(--muted); }
+.ready { color: var(--green); }
+@media (prefers-reduced-motion: no-preference) { button { transition: transform .15s ease; } button:active { transform: scale(.97); } }
