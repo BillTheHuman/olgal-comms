@@ -1,10 +1,10 @@
 {
-  "name": "OlGal Comms",
-  "short_name": "OlGal",
-  "description": "A private, self-only line for AI calls and messages.",
+  "name": "OlGal Hearth",
+  "short_name": "Hearth",
+  "description": "A private home for AI calls, requests, and voice letters.",
   "start_url": "/comms/",
   "scope": "/comms/",
   "display": "standalone",
-  "background_color": "#101a18",
-  "theme_color": "#101a18"
+  "background_color": "#07110f",
+  "theme_color": "#07110f"
 }

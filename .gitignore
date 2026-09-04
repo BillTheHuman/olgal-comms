@@ -11,3 +11,5 @@ secrets/
 dist/
 build/
 node_modules/
+audit/
+design-qa-evidence/

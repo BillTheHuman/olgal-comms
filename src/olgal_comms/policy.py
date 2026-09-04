@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import hashlib
 import time
 from datetime import datetime
 
@@ -40,7 +39,3 @@ class Policy:
         hour = (now or datetime.now()).hour
         start, end = self.settings.quiet_start, self.settings.quiet_end
         return hour >= start or hour < end if start > end else start <= hour < end
-
-    @staticmethod
-    def digest(value: str) -> str:
-        return hashlib.sha256(value.encode("utf-8")).hexdigest()[:16]

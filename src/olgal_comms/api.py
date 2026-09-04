@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any, Literal
 
 import uvicorn
-from fastapi import Depends, FastAPI, Header, HTTPException
+from fastapi import Depends, FastAPI, Header, HTTPException, Response
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict, Field
@@ -14,6 +14,13 @@ from .config import Settings
 from .models import Capability, Priority, SessionState
 from .policy import PolicyDenied
 from .service import CommsService
+from .store import SignalUnavailable
+
+HEARTH_CONTENT_SECURITY_POLICY = (
+    "default-src 'self'; connect-src 'self'; img-src 'self'; style-src 'self'; "
+    "script-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; "
+    "frame-ancestors 'none'"
+)
 
 
 class StrictRequest(BaseModel):
@@ -37,18 +44,17 @@ class CallRequest(SessionRequest):
 
 
 class TransitionRequest(StrictRequest):
-    state: Literal["notified", "accepted", "active", "declined", "ended", "failed"]
+    state: Literal["accepted", "deferred", "declined"]
 
 
 class SignalRequest(StrictRequest):
-    sender: Literal["ai", "self"]
     payload: dict[str, Any]
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
     settings = settings or Settings.from_env()
     service = CommsService(settings)
-    app = FastAPI(title="OlGal Comms", version="0.1.0", docs_url="/api/docs")
+    app = FastAPI(title="OlGal Comms", version="0.2.0", docs_url="/api/docs")
     app.state.service = service
 
     def capability(authorization: str | None = Header(default=None)) -> Capability:
@@ -94,41 +100,54 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             body.media_mode,
         ).public()
 
+    @app.get("/api/v1/inbox")
+    def inbox(response: Response, cap: Capability = Depends(capability)):
+        response.headers["Cache-Control"] = "no-store"
+        return {
+            "sessions": [
+                session.owner_summary() for session in service.list_owner_sessions(cap, 50)
+            ]
+        }
+
     @app.get("/api/v1/sessions/{session_id}")
     def get_session(session_id: str, cap: Capability = Depends(capability)):
         return service.get_session(cap, session_id).public()
 
     @app.post("/api/v1/sessions/{session_id}/end")
     def end_session(session_id: str, cap: Capability = Depends(capability)):
-        return service.end_session(cap, session_id).public()
+        try:
+            return service.end_session(cap, session_id).public()
+        except ValueError as exc:
+            raise HTTPException(status_code=409, detail=str(exc)) from exc
 
     @app.post("/api/v1/sessions/{session_id}/transition")
     def transition(session_id: str, body: TransitionRequest, cap: Capability = Depends(capability)):
-        session = service.get_session(cap, session_id)
-        allowed = {
-            "requested": {"notified", "accepted", "declined", "failed", "ended"},
-            "notified": {"accepted", "declined", "failed", "ended"},
-            "accepted": {"active", "declined", "failed", "ended"},
-            "active": {"failed", "ended"},
-        }
-        if body.state not in allowed.get(session.state.value, set()):
-            raise HTTPException(status_code=409, detail="invalid state transition")
-        changed = service.store.transition(session_id, SessionState(body.state))
-        return changed.public() if changed else None
+        try:
+            return service.owner_decide(cap, session_id, SessionState(body.state)).public()
+        except ValueError as exc:
+            raise HTTPException(status_code=409, detail=str(exc)) from exc
 
     @app.post("/api/v1/sessions/{session_id}/signals")
     def add_signal(session_id: str, body: SignalRequest, cap: Capability = Depends(capability)):
-        service.get_session(cap, session_id)
         try:
-            signal_id = service.store.add_signal(session_id, body.sender, body.payload)
+            signal_id = service.add_signal(cap, session_id, body.payload)
+        except SignalUnavailable as exc:
+            raise HTTPException(status_code=409, detail=str(exc)) from exc
         except ValueError as exc:
             raise HTTPException(status_code=413, detail=str(exc)) from exc
         return {"id": signal_id, "accepted": True}
 
     @app.get("/api/v1/sessions/{session_id}/signals")
-    def get_signals(session_id: str, after: int = 0, cap: Capability = Depends(capability)):
-        service.get_session(cap, session_id)
-        return {"signals": service.store.signals(session_id, after)}
+    def get_signals(
+        session_id: str,
+        after: int = 0,
+        limit: int = 100,
+        cap: Capability = Depends(capability),
+    ):
+        if after < 0:
+            raise HTTPException(status_code=422, detail="after must be non-negative")
+        service.signaling_session(cap, session_id)
+        return {"signals": service.store.signals(session_id, after, max(1, min(limit, 100)))}
 
     web_root = Path(os.getenv("OLGAL_WEB_ROOT", Path(__file__).parents[2] / "web"))
     if web_root.exists():
@@ -146,7 +165,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
         @app.get("/", include_in_schema=False)
         def index():
-            return FileResponse(web_root / "index.html")
+            return FileResponse(
+                web_root / "index.html",
+                headers={
+                    "Content-Security-Policy": HEARTH_CONTENT_SECURITY_POLICY,
+                    "X-Frame-Options": "DENY",
+                },
+            )
 
     return app
 

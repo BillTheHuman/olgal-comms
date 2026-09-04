@@ -4,7 +4,11 @@ OlGal Comms is a private communications broker that lets authorized AI applicati
 message exactly one person: the owner of the OlGal machine. The public API intentionally has no
 recipient parameter.
 
-The first release provides a policy engine, scoped capability tokens, SQLite session state,
+![OlGal Hearth owner interface](docs/assets/olgal-hearth-preview.webp)
+
+The owner-facing application is **OlGal Hearth**: an elegant private switchboard that presents
+identity, intent, and consent while keeping tokens and transport diagnostics in Settings. The
+service provides a policy engine, scoped capability tokens, SQLite session state,
 metadata-only audit records, REST and MCP interfaces, an installable iPhone PWA, WebRTC signaling,
 and capability-detected adapters. SimpleX, TerminalPhone, SIP, Venice, iMessage, and PSTN report
 their actual readiness rather than silently falling back.
@@ -14,7 +18,7 @@ their actual readiness rather than silently falling back.
 | Capability | State | Boundary |
 | --- | --- | --- |
 | REST/MCP policy service | Implemented | OlGal loopback |
-| iPhone PWA and signaling | Implemented; device test required | Tailscale and the owner's browser |
+| OlGal Hearth PWA and signaling | Implemented; device test required | Tailscale and the owner's browser |
 | SimpleX | Adapter scaffold; CLI not installed | SimpleX network and the owner's device |
 | TerminalPhone | Forked; hardened v2 work tracked separately | Tor relays and peer |
 | SIP | Adapter scaffold; `baresip` not installed | Local SIP only in v1 |
@@ -58,3 +62,6 @@ The behavioral covenant is derived from the FORGE in
 
 Software in this repository is offered under AGPL-3.0-or-later. The covenant is offered under
 CC BY-SA 4.0. The TerminalPhone downstream fork remains MIT-licensed in its own repository.
+
+The interface uses MIT-licensed Phosphor icons; attribution is preserved beside the bundled
+assets in `web/icons/LICENSE`.

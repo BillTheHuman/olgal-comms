@@ -147,7 +147,7 @@ class CommsService:
             expires_at=now + max(30, min(ttl, 3600)),
             transport=transport,
             media_mode=media_mode,
-            reason_digest=self.policy.digest(reason),
+            reason_digest=None,
         )
         self.store.save_session(session)
         self.store.audit(
@@ -158,7 +158,7 @@ class CommsService:
                 "session_id": session.id,
                 "priority": priority.value,
                 "transport": transport,
-                "reason_digest": session.reason_digest,
+                "reason_bytes": len(reason.encode("utf-8")),
             },
         )
         return session
@@ -169,8 +169,60 @@ class CommsService:
         if not session or (session.owner != capability.subject and not may_manage_self):
             raise PolicyDenied("session not found for this capability")
         if session.state not in TERMINAL_STATES and session.expires_at <= time.time():
-            session = self.store.transition(session.id, SessionState.EXPIRED) or session
+            session = (
+                self.store.transition(
+                    session.id,
+                    SessionState.EXPIRED,
+                    set(SessionState) - TERMINAL_STATES,
+                )
+                or self.store.get_session(session.id)
+                or session
+            )
         return session
+
+    def list_owner_sessions(self, capability, limit: int = 20) -> list[Session]:
+        if "manage_self_sessions" not in capability.actions:
+            raise PolicyDenied("capability does not allow viewing the owner's Hearth")
+        self.store.expire_sessions(time.time())
+        return self.store.list_open_sessions(limit)
+
+    def owner_decide(self, capability, session_id: str, state: SessionState) -> Session:
+        if "manage_self_sessions" not in capability.actions:
+            raise PolicyDenied("only the owner may answer or defer a request")
+        if state not in {SessionState.ACCEPTED, SessionState.DEFERRED, SessionState.DECLINED}:
+            raise ValueError("invalid owner decision")
+        session = self.get_session(capability, session_id)
+        allowed_from = {
+            SessionState.REQUESTED,
+            SessionState.NOTIFIED,
+            SessionState.DEFERRED,
+        }
+        if session.state not in allowed_from:
+            raise ValueError("request is no longer awaiting a decision")
+        changed = self.store.transition(session_id, state, allowed_from)
+        if changed is None:
+            raise ValueError("request changed before the decision was saved")
+        self.store.audit(
+            capability.subject,
+            "owner_decision",
+            "allowed",
+            {"session_id": session_id, "from": session.state.value, "to": state.value},
+        )
+        return changed
+
+    def signaling_session(self, capability, session_id: str) -> tuple[Session, str]:
+        session = self.get_session(capability, session_id)
+        if session.kind != "call" or session.state not in {
+            SessionState.ACCEPTED,
+            SessionState.ACTIVE,
+        }:
+            raise PolicyDenied("signaling is unavailable until the owner accepts the call")
+        sender = "self" if "manage_self_sessions" in capability.actions else "ai"
+        return session, sender
+
+    def add_signal(self, capability, session_id: str, payload: dict[str, object]) -> int:
+        _session, sender = self.signaling_session(capability, session_id)
+        return self.store.add_signal(session_id, sender, payload)
 
     def end_session(self, capability, session_id: str) -> Session:
         if (
@@ -181,7 +233,13 @@ class CommsService:
         session = self.get_session(capability, session_id)
         if session.state in TERMINAL_STATES:
             return session
-        ended = self.store.transition(session_id, SessionState.ENDED)
-        assert ended is not None
+        ended = self.store.transition(
+            session_id, SessionState.ENDED, set(SessionState) - TERMINAL_STATES
+        )
+        if ended is None:
+            latest = self.store.get_session(session_id)
+            if latest and latest.state in TERMINAL_STATES:
+                return latest
+            raise ValueError("session changed before it could be ended")
         self.store.audit(capability.subject, "end_call", "allowed", {"session_id": session_id})
         return ended

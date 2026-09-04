@@ -10,6 +10,7 @@ from olgal_comms.config import Settings
 from olgal_comms.models import Capability, Priority, SessionState
 from olgal_comms.policy import PolicyDenied
 from olgal_comms.service import CommsService
+from olgal_comms.store import SignalUnavailable
 
 
 def settings(tmp_path: Path, *, emergency: bool = False) -> Settings:
@@ -108,7 +109,7 @@ def test_reason_content_is_not_stored(tmp_path):
     )
     raw = (tmp_path / "test.db").read_bytes()
     assert secret_reason.encode() not in raw
-    assert session.reason_digest
+    assert session.reason_digest is None
 
 
 def test_call_rate_limit(tmp_path):
@@ -147,9 +148,27 @@ def test_signals_are_bounded_and_deleted_at_end(tmp_path):
     session = service.request_session(
         cap, "call", "talk", Priority.IMPORTANT, 300, "webrtc", "native-audio"
     )
+    service.store.transition(session.id, SessionState.ACCEPTED, {SessionState.REQUESTED})
     service.store.add_signal(session.id, "ai", {"sdp": "small"})
     assert len(service.store.signals(session.id)) == 1
     with pytest.raises(ValueError, match="exceeds 32768 bytes"):
         service.store.add_signal(session.id, "ai", {"sdp": "x" * 32_769})
     service.store.transition(session.id, SessionState.ENDED)
+    assert service.store.signals(session.id) == []
+
+
+def test_signal_cannot_be_inserted_after_terminal_transition(tmp_path):
+    service = CommsService(settings(tmp_path))
+    cap = capability()
+    session = service.request_session(
+        cap, "call", "talk", Priority.IMPORTANT, 300, "webrtc", "native-audio"
+    )
+    service.store.transition(session.id, SessionState.ACCEPTED, {SessionState.REQUESTED})
+
+    # Reproduce the old race: authorization observed ACCEPTED, then the call ended
+    # before the signal write reached the Store.
+    assert service.get_session(cap, session.id).state is SessionState.ACCEPTED
+    service.end_session(cap, session.id)
+    with pytest.raises(SignalUnavailable, match="no longer open"):
+        service.store.add_signal(session.id, "ai", {"type": "ice"})
     assert service.store.signals(session.id) == []

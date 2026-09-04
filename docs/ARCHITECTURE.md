@@ -19,6 +19,10 @@ The REST and MCP interfaces intentionally omit a recipient field. A future proje
 other people must introduce a separate contact authority and consent model instead of widening
 `self` implicitly.
 
-Call state is explicit: `requested`, `notified`, `accepted`, `active`, `declined`, `expired`,
-`ended`, or `failed`. Only the transport or user action may advance the relevant state; a model's
-claim does not count as delivery or acceptance.
+Call state is explicit: `requested`, `notified`, `deferred`, `accepted`, `active`, `declined`,
+`expired`, `ended`, or `failed`. Only the owner capability can accept, defer, or decline a request;
+the requesting AI cannot make that decision for the owner. A model's claim does not count as
+delivery or acceptance. Signal insertion and terminal transitions share one protected database
+operation, so an ended or expired call cannot retain a late SDP or ICE record. The Hearth also
+releases its microphone tracks and peer connection on explicit hang-up and browser privacy
+boundaries.

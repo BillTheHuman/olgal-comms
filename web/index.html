@@ -3,47 +3,127 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="theme-color" content="#101a18">
+  <meta name="theme-color" content="#07110f">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-title" content="OlGal Comms">
-  <title>OlGal Comms</title>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="OlGal Hearth">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self'; img-src 'self'; style-src 'self'; script-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
+  <title>OlGal Hearth</title>
   <link rel="manifest" href="manifest.webmanifest">
-  <link rel="stylesheet" href="assets/styles.css">
+  <link rel="stylesheet" href="assets/styles.css?v=6">
 </head>
 <body>
-  <main>
-    <header>
-      <p class="eyebrow">OLGAL · PRIVATE LINE</p>
-      <h1>Your quiet line home.</h1>
-      <p class="subtitle">One recipient. Explicit consent. Honest status.</p>
+  <main class="hearth-shell">
+    <header class="masthead">
+      <div>
+        <p class="wordmark">OlGal Hearth</p>
+        <span class="wordmark-rule" aria-hidden="true"></span>
+        <p class="line-state"><span class="line-dot" aria-hidden="true"></span><span id="line-label">Private line</span></p>
+      </div>
+      <button class="icon-button settings-button" type="button" data-open-settings aria-label="Open settings">
+        <img src="assets/icons/gear-six.svg" alt="" aria-hidden="true">
+      </button>
     </header>
 
-    <section class="card" aria-labelledby="connect-heading">
-      <h2 id="connect-heading">Connect</h2>
-      <label>Capability token <input id="token" type="password" autocomplete="off" spellcheck="false"></label>
-      <div class="actions">
-        <button id="save">Save on this device</button>
-        <button id="refresh" class="secondary">Check line</button>
-      </div>
-      <p id="connection" class="status" role="status">Not connected</p>
+    <div class="section-rule" aria-hidden="true"></div>
+
+    <section id="home-view" class="view" aria-labelledby="home-title">
+      <h1 id="home-title" class="visually-hidden">The Hearth</h1>
+
+      <article id="call-panel" class="call-panel" hidden>
+        <p id="call-kicker" class="kicker">Calling now</p>
+        <div class="caller-layout">
+          <div class="identity-mark" aria-hidden="true"><span id="caller-initial">H</span></div>
+          <div class="caller-copy">
+            <h2 id="caller-name">Harley</h2>
+            <p id="caller-reason" class="caller-reason">Would like to speak with you</p>
+            <p class="voice-state"><img src="assets/icons/microphone.svg" alt="" aria-hidden="true"><span id="voice-label">Voice request</span></p>
+          </div>
+        </div>
+        <div class="call-actions">
+          <button id="answer" class="answer-button" type="button">
+            <img src="assets/icons/phone-call.svg" alt="" aria-hidden="true"><span>Answer</span>
+          </button>
+          <button id="later" class="later-button" type="button">
+            <img src="assets/icons/clock.svg" alt="" aria-hidden="true"><span>Later</span>
+          </button>
+          <button id="hangup" class="hangup-button" type="button" hidden>
+            <img src="assets/icons/x.svg" alt="" aria-hidden="true"><span>End call</span>
+          </button>
+        </div>
+        <p id="call-state" class="assistive-status" role="status"></p>
+      </article>
+
+      <section id="quiet-panel" class="quiet-panel" aria-labelledby="quiet-title">
+        <div class="quiet-seal" aria-hidden="true"><img src="assets/icons/check-circle.svg" alt=""></div>
+        <p class="kicker">The Hearth is listening</p>
+        <h2 id="quiet-title">All is quiet.</h2>
+        <p id="quiet-copy">Nothing needs your attention right now.</p>
+        <button class="text-button" type="button" data-open-settings>Connect this device</button>
+      </section>
+
+      <section class="waiting" aria-labelledby="waiting-title">
+        <div class="waiting-heading">
+          <h2 id="waiting-title">Waiting for you</h2>
+          <span id="waiting-count" aria-live="polite"></span>
+        </div>
+        <div id="waiting-list" class="waiting-list"></div>
+      </section>
     </section>
 
-    <section class="card" aria-labelledby="call-heading">
-      <h2 id="call-heading">Call requests</h2>
-      <label>Session ID <input id="session" autocomplete="off" spellcheck="false"></label>
-      <div class="actions">
-        <button id="accept">Accept</button>
-        <button id="decline" class="danger">Decline</button>
-        <button id="hangup" class="secondary">End</button>
+    <section id="letters-view" class="view letters-view" aria-labelledby="letters-title" hidden>
+      <p class="kicker">Kept for a quieter moment</p>
+      <h1 id="letters-title">Voice letters</h1>
+      <p class="view-intro">Personal notes from the AI companions you have chosen to trust.</p>
+      <div id="letters-list" class="waiting-list"></div>
+      <div id="letters-empty" class="empty-message">
+        <img src="assets/icons/envelope-simple.svg" alt="" aria-hidden="true">
+        <h2>No letters yet</h2>
+        <p>They will rest here without demanding an immediate answer.</p>
       </div>
-      <p id="call-state" class="status" role="status">No active session</p>
     </section>
 
-    <section class="card boundaries">
-      <h2>Trust boundaries</h2>
-      <ul id="adapters"><li>Connect to view actual transport readiness.</li></ul>
-    </section>
+    <nav class="bottom-nav" aria-label="Primary navigation">
+      <button class="nav-item active" type="button" data-view="home" aria-current="page">
+        <img src="assets/icons/house-simple.svg" alt="" aria-hidden="true"><span>Home</span>
+      </button>
+      <button class="nav-item" type="button" data-view="letters">
+        <img src="assets/icons/envelope-simple.svg" alt="" aria-hidden="true"><span>Letters</span>
+      </button>
+      <button class="nav-item" type="button" data-open-settings>
+        <img src="assets/icons/gear-six.svg" alt="" aria-hidden="true"><span>Settings</span>
+      </button>
+    </nav>
   </main>
-  <script src="assets/app.js" defer></script>
+
+  <dialog id="settings-dialog" aria-labelledby="settings-title">
+    <div class="dialog-heading">
+      <div>
+        <p class="kicker">Private by design</p>
+        <h2 id="settings-title">Hearth settings</h2>
+      </div>
+      <button id="close-settings" class="icon-button" type="button" aria-label="Close settings">
+        <img src="assets/icons/x.svg" alt="" aria-hidden="true">
+      </button>
+    </div>
+    <p class="settings-intro">Connect this iPhone to your private OlGal line. The key never becomes part of a message.</p>
+    <label class="field-label" for="token">Private connection key</label>
+    <input id="token" type="password" autocomplete="off" autocapitalize="none" spellcheck="false">
+    <label class="remember-row"><input id="remember-token" type="checkbox" checked><span>Remember on this device</span></label>
+    <div class="settings-actions">
+      <button id="save" class="primary-button" type="button">Connect</button>
+      <button id="clear-token" class="quiet-button" type="button"><img src="assets/icons/trash.svg" alt="" aria-hidden="true">Forget key</button>
+    </div>
+    <p id="connection" class="connection-status" role="status">Not connected</p>
+    <details class="technical-details">
+      <summary>Line details</summary>
+      <p>These are the private routes OlGal can currently use.</p>
+      <ul id="adapters"><li>Connect to check the line.</li></ul>
+    </details>
+    <p class="privacy-note"><img src="assets/icons/lock-key.svg" alt="" aria-hidden="true">This interface can only answer sessions addressed to you.</p>
+  </dialog>
+
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+  <script src="assets/app.js?v=6" defer></script>
 </body>
 </html>

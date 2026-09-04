@@ -10,6 +10,10 @@ from typing import Any
 from .models import Priority, Session, SessionState
 
 
+class SignalUnavailable(RuntimeError):
+    """Raised when a call cannot accept signaling in its current state."""
+
+
 class Store:
     def __init__(self, path: Path):
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -63,6 +67,10 @@ class Store:
         row = self._db.execute("SELECT * FROM sessions WHERE id = ?", (session_id,)).fetchone()
         if not row:
             return None
+        return self._session_from_row(row)
+
+    @staticmethod
+    def _session_from_row(row: sqlite3.Row) -> Session:
         return Session(
             id=row["id"],
             kind=row["kind"],
@@ -76,11 +84,47 @@ class Store:
             reason_digest=row["reason_digest"],
         )
 
-    def transition(self, session_id: str, state: SessionState) -> Session | None:
+    def list_sessions(self, limit: int = 20) -> list[Session]:
+        rows = self._db.execute(
+            "SELECT * FROM sessions ORDER BY created_at DESC LIMIT ?", (limit,)
+        ).fetchall()
+        return [self._session_from_row(row) for row in rows]
+
+    def list_open_sessions(self, limit: int = 20) -> list[Session]:
+        rows = self._db.execute(
+            "SELECT * FROM sessions WHERE state IN (?,?,?,?,?) ORDER BY created_at DESC LIMIT ?",
+            (
+                SessionState.REQUESTED.value,
+                SessionState.NOTIFIED.value,
+                SessionState.DEFERRED.value,
+                SessionState.ACCEPTED.value,
+                SessionState.ACTIVE.value,
+                limit,
+            ),
+        ).fetchall()
+        return [self._session_from_row(row) for row in rows]
+
+    def transition(
+        self,
+        session_id: str,
+        state: SessionState,
+        allowed_from: set[SessionState] | None = None,
+    ) -> Session | None:
         with self._lock, self._db:
-            self._db.execute(
-                "UPDATE sessions SET state = ? WHERE id = ?", (state.value, session_id)
+            row = self._db.execute(
+                "SELECT state FROM sessions WHERE id=?", (session_id,)
+            ).fetchone()
+            if not row:
+                return None
+            current = SessionState(row["state"])
+            if allowed_from and current not in allowed_from:
+                return None
+            cursor = self._db.execute(
+                "UPDATE sessions SET state=? WHERE id=? AND state=?",
+                (state.value, session_id, current.value),
             )
+            if cursor.rowcount != 1:
+                return None
             if state in {
                 SessionState.DECLINED,
                 SessionState.ENDED,
@@ -89,6 +133,27 @@ class Store:
             }:
                 self._db.execute("DELETE FROM signals WHERE session_id = ?", (session_id,))
         return self.get_session(session_id)
+
+    def expire_sessions(self, now: float) -> None:
+        with self._lock, self._db:
+            rows = self._db.execute(
+                "SELECT id,state FROM sessions WHERE expires_at<=?", (now,)
+            ).fetchall()
+            for row in rows:
+                current = SessionState(row["state"])
+                if current in {
+                    SessionState.DECLINED,
+                    SessionState.EXPIRED,
+                    SessionState.ENDED,
+                    SessionState.FAILED,
+                }:
+                    continue
+                cursor = self._db.execute(
+                    "UPDATE sessions SET state=? WHERE id=? AND state=?",
+                    (SessionState.EXPIRED.value, row["id"], current.value),
+                )
+                if cursor.rowcount == 1:
+                    self._db.execute("DELETE FROM signals WHERE session_id=?", (row["id"],))
 
     def count_actions(self, subject: str, action: str, since: float) -> int:
         row = self._db.execute(
@@ -113,17 +178,45 @@ class Store:
         if len(encoded.encode("utf-8")) > 32_768:
             raise ValueError("signal payload exceeds 32768 bytes")
         with self._lock, self._db:
+            now = time.time()
             cursor = self._db.execute(
-                "INSERT INTO signals(session_id,sender,payload,created_at) VALUES(?,?,?,?)",
-                (session_id, sender, encoded, time.time()),
+                """INSERT INTO signals(session_id,sender,payload,created_at)
+                SELECT id,?,?,? FROM sessions
+                WHERE id=? AND kind='call' AND state IN (?,?) AND expires_at>?""",
+                (
+                    sender,
+                    encoded,
+                    now,
+                    session_id,
+                    SessionState.ACCEPTED.value,
+                    SessionState.ACTIVE.value,
+                    now,
+                ),
             )
+            if cursor.rowcount != 1:
+                expired = self._db.execute(
+                    """UPDATE sessions SET state=?
+                    WHERE id=? AND state NOT IN (?,?,?,?) AND expires_at<=?""",
+                    (
+                        SessionState.EXPIRED.value,
+                        session_id,
+                        SessionState.DECLINED.value,
+                        SessionState.EXPIRED.value,
+                        SessionState.ENDED.value,
+                        SessionState.FAILED.value,
+                        now,
+                    ),
+                )
+                if expired.rowcount == 1:
+                    self._db.execute("DELETE FROM signals WHERE session_id=?", (session_id,))
+                raise SignalUnavailable("call is no longer open for signaling")
             return int(cursor.lastrowid)
 
-    def signals(self, session_id: str, after: int = 0) -> list[dict[str, Any]]:
+    def signals(self, session_id: str, after: int = 0, limit: int = 100) -> list[dict[str, Any]]:
         rows = self._db.execute(
             "SELECT id,sender,payload,created_at FROM signals "
-            "WHERE session_id=? AND id>? ORDER BY id",
-            (session_id, after),
+            "WHERE session_id=? AND id>? ORDER BY id LIMIT ?",
+            (session_id, after, limit),
         ).fetchall()
         return [
             {
